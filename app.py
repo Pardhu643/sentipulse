@@ -31,6 +31,7 @@ def ensure_initialized():
         _initialized = True
 
 @app.route('/')
+@app.route('/api/index')
 def index():
     ensure_initialized()
     return render_template('index.html')
