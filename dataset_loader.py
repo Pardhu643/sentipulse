@@ -1,6 +1,7 @@
 import csv
 import os
-from collections import Counter, defaultdict
+import random
+from collections import Counter
 
 class DatasetLoader:
     def __init__(self, csv_path):
@@ -10,8 +11,8 @@ class DatasetLoader:
         self.sentiments = set()
         self.loaded = False
 
-    def load(self):
-        """Parse dataset into structured records."""
+    def load(self, max_records=15000):
+        """Memory-efficient parser loading up to max_records."""
         if not os.path.exists(self.csv_path):
             raise FileNotFoundError(f"Dataset not found at {self.csv_path}")
 
@@ -21,19 +22,20 @@ class DatasetLoader:
 
         with open(self.csv_path, 'r', encoding='utf-8', errors='ignore') as f:
             reader = csv.reader(f)
+            count = 0
             for row in reader:
                 if len(row) >= 4:
                     item_id, entity, sentiment, text = row[0].strip(), row[1].strip(), row[2].strip(), row[3].strip()
-                    # Standardize sentiment label
                     sentiment = sentiment.capitalize()
-                    self.data.append({
-                        'id': item_id,
-                        'entity': entity,
-                        'sentiment': sentiment,
-                        'text': text
-                    })
+                    
+                    # Store compact tuples (id, entity, sentiment, text) to save RAM
+                    self.data.append((item_id, entity, sentiment, text))
                     self.entities.add(entity)
                     self.sentiments.add(sentiment)
+                    
+                    count += 1
+                    if max_records and count >= max_records:
+                        break
 
         self.loaded = True
         return len(self.data)
@@ -43,8 +45,8 @@ class DatasetLoader:
         if not self.loaded:
             self.load()
 
-        sentiment_counts = Counter(item['sentiment'] for item in self.data)
-        entity_counts = Counter(item['entity'] for item in self.data)
+        sentiment_counts = Counter(item[2] for item in self.data)
+        entity_counts = Counter(item[1] for item in self.data)
 
         return {
             'total_records': len(self.data),
@@ -58,11 +60,11 @@ class DatasetLoader:
         if not self.loaded:
             self.load()
 
-        entity_items = [item for item in self.data if item['entity'].lower() == entity_name.lower()]
-        counts = Counter(item['sentiment'] for item in entity_items)
+        entity_items = [item for item in self.data if item[1].lower() == entity_name.lower()]
+        counts = Counter(item[2] for item in entity_items)
 
         sample_texts = [
-            {'text': item['text'], 'sentiment': item['sentiment']}
+            {'text': item[3], 'sentiment': item[2]}
             for item in entity_items[:5]
         ]
 
@@ -73,16 +75,13 @@ class DatasetLoader:
             'samples': sample_texts
         }
 
-    def get_training_samples(self, sample_size=4000):
+    def get_training_samples(self, sample_size=1500):
         """Get balanced sample subset for ML training."""
         if not self.loaded:
             self.load()
 
-        # Filter out 'Irrelevant' if desired or keep standard classes
-        valid_items = [item for item in self.data if item['sentiment'] in ['Positive', 'Negative', 'Neutral'] and len(item['text']) > 10]
+        valid_items = [item for item in self.data if item[2] in ['Positive', 'Negative', 'Neutral'] and len(item[3]) > 10]
         
-        # Sample proportionally
-        import random
         random.seed(42)
         sampled = random.sample(valid_items, min(sample_size, len(valid_items)))
-        return [(item['text'], item['sentiment']) for item in sampled]
+        return [(item[3], item[2]) for item in sampled]

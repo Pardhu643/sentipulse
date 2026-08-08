@@ -56,7 +56,7 @@ class HybridSentimentEngine:
             'label': label
         }
 
-    def train_ml_model(self, training_data, top_n_features=1500):
+    def train_ml_model(self, training_data, top_n_features=500):
         """
         Train a Naive Bayes classifier on provided (text, label) tuples.
         """
