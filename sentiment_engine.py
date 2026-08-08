@@ -1,7 +1,12 @@
+import os
+import sys
 import re
 import nltk
-
 import ssl
+
+# Ensure NLTK searches local user directory and current dir
+nltk.data.path.append(r'C:\Users\pardh\nltk_data')
+nltk.data.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Ensure SSL context bypass for NLTK dataset downloading on Windows networks
 try:

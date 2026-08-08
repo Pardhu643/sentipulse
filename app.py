@@ -3,33 +3,37 @@ from flask import Flask, render_template, request, jsonify
 from sentiment_engine import HybridSentimentEngine
 from dataset_loader import DatasetLoader
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates', static_folder='static')
 
-# Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATASET_PATH = os.path.join(BASE_DIR, 'twitter_training.csv')
 if not os.path.exists(DATASET_PATH):
     DATASET_PATH = os.path.abspath(os.path.join(BASE_DIR, '..', 'twitter_training.csv'))
 
-# Initialize engine & loader
 engine = HybridSentimentEngine()
 loader = DatasetLoader(DATASET_PATH)
 
-print("Loading dataset...")
-total = loader.load()
-print(f"Loaded {total} dataset records.")
+_initialized = False
 
-print("Training Naive Bayes ML model on dataset samples...")
-training_samples = loader.get_training_samples(sample_size=3000)
-engine.train_ml_model(training_samples)
-print("ML Model trained successfully!")
+def ensure_initialized():
+    global _initialized
+    if not _initialized:
+        try:
+            loader.load(max_records=10000)
+            samples = loader.get_training_samples(sample_size=1000)
+            engine.train_ml_model(samples, top_n_features=300)
+        except Exception as e:
+            print(f"Lazy initialization notice: {e}")
+        _initialized = True
 
 @app.route('/')
 def index():
+    ensure_initialized()
     return render_template('index.html')
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze():
+    ensure_initialized()
     data = request.get_json() or {}
     text = data.get('text', '').strip()
     
@@ -41,23 +45,26 @@ def analyze():
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
+    ensure_initialized()
     summary = loader.get_summary()
     return jsonify(summary)
 
 @app.route('/api/entity/<name>', methods=['GET'])
 def get_entity_details(name):
+    ensure_initialized()
     details = loader.get_entity_breakdown(name)
     return jsonify(details)
 
 @app.route('/api/batch', methods=['POST'])
 def batch_analyze():
+    ensure_initialized()
     data = request.get_json() or {}
     texts = data.get('texts', [])
     
     if not isinstance(texts, list):
         return jsonify({'error': 'Invalid format. Expected array of texts.'}), 400
 
-    results = [engine.analyze(t) for t in texts[:50]]  # limit to 50
+    results = [engine.analyze(t) for t in texts[:50]]
     return jsonify({'results': results})
 
 if __name__ == '__main__':
