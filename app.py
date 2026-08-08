@@ -3,12 +3,15 @@ from flask import Flask, render_template, request, jsonify
 from sentiment_engine import HybridSentimentEngine
 from dataset_loader import DatasetLoader
 
-app = Flask(__name__, template_folder='templates', static_folder='static')
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.join(ROOT_DIR, 'templates')
+STATIC_DIR = os.path.join(ROOT_DIR, 'static')
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATASET_PATH = os.path.join(BASE_DIR, 'twitter_training.csv')
+app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
+
+DATASET_PATH = os.path.join(ROOT_DIR, 'twitter_training.csv')
 if not os.path.exists(DATASET_PATH):
-    DATASET_PATH = os.path.abspath(os.path.join(BASE_DIR, '..', 'twitter_training.csv'))
+    DATASET_PATH = os.path.abspath(os.path.join(ROOT_DIR, '..', 'twitter_training.csv'))
 
 engine = HybridSentimentEngine()
 loader = DatasetLoader(DATASET_PATH)
@@ -19,9 +22,10 @@ def ensure_initialized():
     global _initialized
     if not _initialized:
         try:
-            loader.load(max_records=10000)
-            samples = loader.get_training_samples(sample_size=1000)
-            engine.train_ml_model(samples, top_n_features=300)
+            if os.path.exists(DATASET_PATH):
+                loader.load(max_records=10000)
+                samples = loader.get_training_samples(sample_size=1000)
+                engine.train_ml_model(samples, top_n_features=300)
         except Exception as e:
             print(f"Lazy initialization notice: {e}")
         _initialized = True

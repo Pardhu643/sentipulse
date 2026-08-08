@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/index.py": {
+      "includeFiles": "twitter_training.csv,templates/**,static/**,nltk_data/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
