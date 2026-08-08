@@ -4,9 +4,13 @@ import re
 import nltk
 import ssl
 
-# Ensure NLTK searches local user directory and current dir
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+temp_nltk_dir = '/tmp/nltk_data'
+
+# Ensure NLTK data paths include local project directory and /tmp for Vercel Serverless
+nltk.data.path.append(os.path.join(BASE_DIR, 'nltk_data'))
+nltk.data.path.append(temp_nltk_dir)
 nltk.data.path.append(r'C:\Users\pardh\nltk_data')
-nltk.data.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Ensure SSL context bypass for NLTK dataset downloading on Windows networks
 try:
@@ -20,9 +24,15 @@ try:
     from nltk.sentiment.vader import SentimentIntensityAnalyzer
     vader = SentimentIntensityAnalyzer()
 except Exception:
-    nltk.download('vader_lexicon', quiet=True)
-    from nltk.sentiment.vader import SentimentIntensityAnalyzer
-    vader = SentimentIntensityAnalyzer()
+    try:
+        os.makedirs(temp_nltk_dir, exist_ok=True)
+        nltk.download('vader_lexicon', download_dir=temp_nltk_dir, quiet=True)
+        from nltk.sentiment.vader import SentimentIntensityAnalyzer
+        vader = SentimentIntensityAnalyzer()
+    except Exception as err:
+        print(f"VADER init warning: {err}")
+        from nltk.sentiment.vader import SentimentIntensityAnalyzer
+        vader = SentimentIntensityAnalyzer()
 
 class HybridSentimentEngine:
     def __init__(self):
