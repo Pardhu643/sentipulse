@@ -14,7 +14,7 @@
 <body>
     <div class="app-container">
         <!-- Sidebar Navigation -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="brand">
                 <div class="brand-icon">
                     <i class="fa-solid fa-brain-circuit"></i>
@@ -23,6 +23,9 @@
                     <h2>SentiPulse</h2>
                     <span>Hybrid Sentiment AI</span>
                 </div>
+                <button class="mobile-close-btn" id="mobile-close-btn">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
 
             <nav class="nav-menu">
@@ -47,13 +50,23 @@
             <div class="sidebar-footer">
                 <div class="status-indicator">
                     <span class="status-dot"></span>
-                    <span>VADER + Naive Bayes Active</span>
+                    <span id="system-status-text">VADER + Naive Bayes Active</span>
                 </div>
             </div>
         </aside>
 
         <!-- Main Content Area -->
         <main class="content-area">
+            <!-- Mobile Top Header Bar -->
+            <div class="mobile-nav-bar">
+                <button class="mobile-toggle-btn" id="mobile-toggle-btn">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="mobile-brand">
+                    <i class="fa-solid fa-brain-circuit"></i> SentiPulse
+                </div>
+            </div>
+
             <!-- Header Bar -->
             <header class="top-header">
                 <div class="header-title">
@@ -61,9 +74,15 @@
                     <p id="page-subtitle">Real-time Hybrid VADER Lexical & Naive Bayes ML Sentiment Evaluation</p>
                 </div>
                 <div class="header-actions">
-                    <span class="badge badge-accent"><i class="fa-solid fa-bolt"></i> Fast Response</span>
+                    <span class="badge badge-accent" id="latency-badge"><i class="fa-solid fa-bolt"></i> Latency: -- ms</span>
                 </div>
             </header>
+
+            <!-- Inline Alert Toast Container -->
+            <div id="alert-container" class="alert-container" style="display: none;">
+                <div id="alert-message" class="alert-message"></div>
+                <button class="alert-close" onclick="closeAlert()">&times;</button>
+            </div>
 
             <!-- Tab 1: Live Analyzer -->
             <section id="tab-live" class="tab-content active">
@@ -72,10 +91,11 @@
                     <div class="card glass-card">
                         <div class="card-header">
                             <h3><i class="fa-solid fa-pen-to-square"></i> Input Text / Tweet</h3>
+                            <span class="char-count" id="char-count">0 / 5000</span>
                         </div>
                         <div class="card-body">
                             <div class="input-group">
-                                <textarea id="analyze-input" placeholder="Type or paste social media text, product review, or feedback here..." rows="6"></textarea>
+                                <textarea id="analyze-input" placeholder="Type or paste social media text, product review, or feedback here..." rows="6" maxlength="5000"></textarea>
                             </div>
                             <div class="sample-pills">
                                 <span>Try Examples:</span>
@@ -101,7 +121,10 @@
                         <div class="card-body">
                             <!-- Compound Meter -->
                             <div class="compound-meter-wrapper">
-                                <span class="meter-label">Compound Score Valence</span>
+                                <div class="meter-header">
+                                    <span class="meter-label">Compound Score Valence</span>
+                                    <span class="latency-subtext" id="result-latency">-- ms</span>
+                                </div>
                                 <div class="compound-val-display" id="compound-val">0.0000</div>
                                 <div class="meter-bar-bg">
                                     <div id="compound-fill" class="meter-bar-fill"></div>
@@ -131,13 +154,21 @@
 
                             <!-- Machine Learning Classification Info -->
                             <div class="ml-info-box">
-                                <div class="ml-info-item">
-                                    <span>Naive Bayes Prediction:</span>
-                                    <strong id="ml-label">--</strong>
+                                <div class="ml-info-row">
+                                    <div class="ml-info-item">
+                                        <span>Naive Bayes Prediction:</span>
+                                        <strong id="ml-label">--</strong>
+                                    </div>
+                                    <div class="ml-info-item">
+                                        <span>Confidence Probability:</span>
+                                        <strong id="ml-confidence">--</strong>
+                                    </div>
                                 </div>
-                                <div class="ml-info-item">
-                                    <span>Confidence Probability:</span>
-                                    <strong id="ml-confidence">--</strong>
+                                <div class="ml-signals-row mt-2">
+                                    <span class="signals-label">Extracted Key Signals:</span>
+                                    <div id="ml-signals-pills" class="signals-pills">
+                                        <span class="signal-empty">None detected yet</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -151,21 +182,21 @@
                     <div class="card stat-card">
                         <i class="fa-solid fa-database stat-icon"></i>
                         <div class="stat-info">
-                            <span class="stat-number" id="stat-total-records">74,682</span>
+                            <span class="stat-number" id="stat-total-records">Loading...</span>
                             <span class="stat-label">Total Tweets Indexed</span>
                         </div>
                     </div>
                     <div class="card stat-card">
                         <i class="fa-solid fa-tags stat-icon"></i>
                         <div class="stat-info">
-                            <span class="stat-number" id="stat-unique-entities">32</span>
+                            <span class="stat-number" id="stat-unique-entities">Loading...</span>
                             <span class="stat-label">Entities / Topics</span>
                         </div>
                     </div>
                     <div class="card stat-card">
                         <i class="fa-solid fa-bullseye stat-icon"></i>
                         <div class="stat-info">
-                            <span class="stat-number">91.4%</span>
+                            <span class="stat-number" id="stat-agreement-rate">--%</span>
                             <span class="stat-label">VADER-ML Agreement Rate</span>
                         </div>
                     </div>
@@ -175,7 +206,7 @@
                     <!-- Chart 1: Global Distribution -->
                     <div class="card glass-card">
                         <div class="card-header">
-                            <h3><i class="fa-solid fa-chart-donut"></i> Global Sentiment Breakdown</h3>
+                            <h3><i class="fa-solid fa-chart-pie"></i> Global Sentiment Breakdown</h3>
                         </div>
                         <div class="card-body chart-container">
                             <canvas id="chart-global-sentiment"></canvas>
@@ -187,10 +218,7 @@
                         <div class="card-header">
                             <h3><i class="fa-solid fa-gamepad"></i> Entity Sentiment Explorer</h3>
                             <select id="entity-select" class="custom-select">
-                                <option value="Borderlands">Borderlands</option>
-                                <option value="Overwatch">Overwatch</option>
-                                <option value="CallOfDuty">Call of Duty</option>
-                                <option value="Microsoft">Microsoft</option>
+                                <option value="">Loading entities...</option>
                             </select>
                         </div>
                         <div class="card-body chart-container">
@@ -206,7 +234,7 @@
                     </div>
                     <div class="card-body">
                         <ul id="entity-samples-list" class="samples-list">
-                            <!-- Populated dynamically -->
+                            <li class="sample-loading">Loading samples...</li>
                         </ul>
                     </div>
                 </div>
@@ -219,30 +247,56 @@
                         <h3><i class="fa-solid fa-list-check"></i> Multi-Line Tweet Batch Evaluator</h3>
                     </div>
                     <div class="card-body">
-                        <p class="section-desc">Enter multiple sentences or tweets (one per line) to process bulk sentiment scores simultaneously.</p>
+                        <p class="section-desc">Enter multiple sentences or tweets (one per line, up to 50 items) to process bulk sentiment scores simultaneously.</p>
                         <textarea id="batch-input" rows="7" placeholder="I love this game so much! Best graphics ever!&#10;The servers are lagging and constantly crashing.&#10;This update is okay, nothing special."></textarea>
-                        <div class="mt-3">
+                        <div class="btn-group mt-3">
                             <button id="btn-batch-analyze" class="btn btn-primary">
                                 <i class="fa-solid fa-play"></i> Run Batch Diagnostics
                             </button>
+                            <button id="btn-batch-clear" class="btn btn-secondary">Clear Batch</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="card glass-card mt-4" id="batch-results-wrapper" style="display:none;">
                     <div class="card-header">
-                        <h3>Batch Results</h3>
+                        <h3><i class="fa-solid fa-table-list"></i> Batch Diagnostics Results</h3>
+                        <div class="batch-export-actions">
+                            <button id="btn-export-csv" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+                            <button id="btn-export-json" class="btn btn-secondary btn-sm"><i class="fa-solid fa-file-code"></i> Export JSON</button>
+                        </div>
                     </div>
                     <div class="card-body">
+                        <!-- Batch Summary Stat Metrics -->
+                        <div class="batch-summary-grid mb-3" id="batch-summary-grid">
+                            <div class="batch-stat-box">
+                                <span>Total Analyzed</span>
+                                <strong id="batch-stat-total">0</strong>
+                            </div>
+                            <div class="batch-stat-box pos">
+                                <span>Positive</span>
+                                <strong id="batch-stat-pos">0%</strong>
+                            </div>
+                            <div class="batch-stat-box neg">
+                                <span>Negative</span>
+                                <strong id="batch-stat-neg">0%</strong>
+                            </div>
+                            <div class="batch-stat-box neu">
+                                <span>Neutral</span>
+                                <strong id="batch-stat-neu">0%</strong>
+                            </div>
+                        </div>
+
                         <div class="table-responsive">
                             <table class="data-table">
                                 <thead>
                                     <tr>
                                         <th>#</th>
-                                        <th>Text</th>
+                                        <th>Input Text</th>
                                         <th>Consensus Label</th>
-                                        <th>Compound Score</th>
-                                        <th>ML Label</th>
+                                        <th>VADER Valence</th>
+                                        <th>Naive Bayes ML</th>
+                                        <th>Latency</th>
                                     </tr>
                                 </thead>
                                 <tbody id="batch-table-body">
@@ -257,26 +311,26 @@
             <section id="tab-api" class="tab-content">
                 <div class="card glass-card">
                     <div class="card-header">
-                        <h3><i class="fa-solid fa-cubes"></i> System Architecture</h3>
+                        <h3><i class="fa-solid fa-cubes"></i> Hybrid Sentiment System Architecture</h3>
                     </div>
                     <div class="card-body">
                         <div class="arch-box">
                             <div class="arch-node">User Input / API Request</div>
                             <div class="arch-arrow">➔</div>
-                            <div class="arch-node highlight">Text Preprocessing & Regex Engine</div>
+                            <div class="arch-node highlight">Preprocessing & Token Sanitization</div>
                             <div class="arch-arrow">➔</div>
                             <div class="arch-split">
                                 <div class="arch-branch">
                                     <strong>VADER Lexical Rule Engine</strong>
-                                    <span>Valence scoring, boosters, negations, idioms</span>
+                                    <span>Valence scoring, boosters, negations & compound scale</span>
                                 </div>
                                 <div class="arch-branch">
-                                    <strong>Naive Bayes ML Model</strong>
-                                    <span>Trained on 74k twitter_training.csv records</span>
+                                    <strong>Naive Bayes ML Classifier</strong>
+                                    <span>Trained on 10k dataset subset with 400 unigram features</span>
                                 </div>
                             </div>
                             <div class="arch-arrow">➔</div>
-                            <div class="arch-node success">Consensus Aggregator & REST JSON Output</div>
+                            <div class="arch-node success">Consensus Aggregator & JSON REST API</div>
                         </div>
                     </div>
                 </div>
@@ -286,32 +340,65 @@
                         <h3><i class="fa-solid fa-terminal"></i> REST API Documentation</h3>
                     </div>
                     <div class="card-body">
-                        <div class="api-endpoint">
+                        <div class="api-endpoint mb-4">
+                            <div class="endpoint-header">
+                                <span class="method get">GET</span>
+                                <code>/api/health</code>
+                            </div>
+                            <p>Returns application health status, dataset load stats, and model training diagnostics.</p>
+                            <pre><code>// Response
+{
+  "status": "healthy",
+  "dataset_loaded": true,
+  "records_count": 10000,
+  "ml_trained": true,
+  "features_count": 400
+}</code></pre>
+                        </div>
+
+                        <div class="api-endpoint mb-4">
                             <div class="endpoint-header">
                                 <span class="method post">POST</span>
                                 <code>/api/analyze</code>
                             </div>
-                            <p>Evaluates sentiment metrics for a single input text.</p>
+                            <p>Evaluates hybrid sentiment metrics and extracted word signals for a single input text.</p>
                             <pre><code>// Request Body
 {
-  "text": "The graphics and story line are simply incredible!"
+  "text": "SentiPulse is an awesome platform! The results are fantastic."
 }
 
 // Response
 {
   "consensus_label": "Positive",
-  "text": "The graphics and story line are simply incredible!",
+  "text": "SentiPulse is an awesome platform! The results are fantastic.",
   "vader": {
-    "compound": 0.6486,
+    "compound": 0.8398,
     "label": "Positive",
     "neg": 0.0,
-    "neu": 0.548,
-    "pos": 0.452
+    "neu": 0.467,
+    "pos": 0.533
   },
   "ml": {
-    "confidence": 0.942,
-    "label": "Positive"
-  }
+    "confidence": 0.543,
+    "label": "Neutral",
+    "matched_features": ["awesome", "fantastic"]
+  },
+  "processing_time_ms": 1.35
+}</code></pre>
+                        </div>
+
+                        <div class="api-endpoint">
+                            <div class="endpoint-header">
+                                <span class="method post">POST</span>
+                                <code>/api/batch</code>
+                            </div>
+                            <p>Bulk sentiment evaluation for an array of text strings (max 50 per request).</p>
+                            <pre><code>// Request Body
+{
+  "texts": [
+    "Great product!",
+    "Terrible service and server crashes."
+  ]
 }</code></pre>
                         </div>
                     </div>

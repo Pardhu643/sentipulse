@@ -1,5 +1,26 @@
-__pycache__/
-*.pyc
+# Environment & Secrets
 .env
+.env.local
+*.env
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual Environments
 venv/
+.venv/
+env/
+ENV/
+
+# IDE & OS Files
+.vscode/
+.idea/
 .DS_Store
+Thumbs.db
+*.log
+
+# Temp NLTK Downloads (Keep checked-in vader_lexicon.zip)
+nltk_data/sentiment/vader_lexicon
